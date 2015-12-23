@@ -71,6 +71,18 @@ describe "Guard::Kitchen" do
       Guard::UI.should_receive(:info).with('Kitchen failed with Mixlib::ShellOut::ShellCommandFailed')
       expect { kitchen.stop }.to throw_symbol(:task_has_failed)
     end
+
+    context "with destroy_on_stop: false" do
+      let(:kitchen) do
+        Guard::Kitchen.new destroy_on_stop: false
+      end
+
+      it "leaves kitchen running" do
+        Guard::UI.should_receive(:info).with('Guard::Kitchen is stopping')
+        Guard::UI.should_receive(:info).with('Kitchen left running')
+        kitchen.stop
+      end
+    end
   end
 
   describe "reload" do

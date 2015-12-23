@@ -18,14 +18,20 @@ require "guard"
 require "guard/plugin"
 require "mixlib/shellout"
 
+require 'guard/kitchen/options'
+require 'guard/kitchen/version'
+
 module Guard
   class Kitchen < Plugin
+    attr_accessor :options
+
     def initialize(options = {})
+      @options = Options.with_defaults(options)
       super
       # you can still access the watchers with options[:watchers]
       # rest of the implementation...
     end
-        
+
     def start
       ::Guard::UI.info("Guard::Kitchen is starting")
       cmd = Mixlib::ShellOut.new("kitchen create", :timeout => 10800)
@@ -43,16 +49,20 @@ module Guard
 
     def stop
       ::Guard::UI.info("Guard::Kitchen is stopping")
-      cmd = Mixlib::ShellOut.new("kitchen destroy", :timeout => 10800)
-      cmd.live_stream = STDOUT
-      cmd.run_command
-      begin
-       cmd.error!
-       Notifier.notify('Kitchen destroyed', :title => 'test-kitchen', :image => :success)
-      rescue Mixlib::ShellOut::ShellCommandFailed => e
-        Notifier.notify('Kitchen destroy failed', :title => 'test-kitchen', :image => :failed)
-       ::Guard::UI.info("Kitchen failed with #{e.to_s}")
-       throw :task_has_failed
+      if options[:destroy_on_stop]
+        cmd = Mixlib::ShellOut.new("kitchen destroy", :timeout => 10800)
+        cmd.live_stream = STDOUT
+        cmd.run_command
+        begin
+         cmd.error!
+         Notifier.notify("Kitchen destroyed", :title => 'test-kitchen', :image => :success)
+        rescue Mixlib::ShellOut::ShellCommandFailed => e
+          Notifier.notify("Kitchen destroy failed", :title => 'test-kitchen', :image => :failed)
+          ::Guard::UI.info("Kitchen failed with #{e.to_s}")
+          throw :task_has_failed
+        end
+      else
+        ::Guard::UI.info("Kitchen left running")
       end
     end
 
